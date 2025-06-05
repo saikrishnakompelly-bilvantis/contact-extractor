@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from src.settings import settings
 import zipfile
 import io
+from datetime import datetime
 
 # Page configuration
 st.set_page_config(
@@ -27,6 +28,60 @@ ADMIN_PASSWORD = "Admin@123"
 def check_authentication():
     """Check if user is authenticated"""
     return st.session_state.get('authenticated', False)
+
+def create_excel_file(df: pd.DataFrame, filename: str) -> bytes:
+    """Create Excel file from DataFrame and return bytes"""
+    output = io.BytesIO()
+    
+    # Create Excel writer object
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Write DataFrame to Excel
+        df.to_excel(writer, sheet_name='Contacts', index=False)
+        
+        # Get workbook and worksheet
+        workbook = writer.book
+        worksheet = writer.sheets['Contacts']
+        
+        # Auto-adjust column widths
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        # Add some formatting
+        from openpyxl.styles import Font, PatternFill, Alignment
+        
+        # Header formatting
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        for cell in worksheet[1]:  # First row (headers)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+        
+        # Add metadata sheet
+        metadata_df = pd.DataFrame({
+            'Property': ['Generated Date', 'Total Contacts', 'Application', 'File Format'],
+            'Value': [
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                len(df),
+                'Bilvantis Contact Extraction',
+                'Excel (.xlsx)'
+            ]
+        })
+        metadata_df.to_excel(writer, sheet_name='Metadata', index=False)
+    
+    output.seek(0)
+    return output.getvalue()
 
 def login_page():
     """Display login page"""
@@ -222,7 +277,7 @@ def main_app():
     col1, col2 = st.columns([3, 1])
     with col1:
         st.title("📇 Bilvantis Contact Extraction")
-        st.markdown("Upload images containing contact information and extract structured data as CSV")
+        st.markdown("Upload images containing contact information and extract structured data as Excel")
     with col2:
         st.markdown(f"**Welcome, {st.session_state.get('user_email', 'User')}!**")
         if st.button("🚪 Logout", use_container_width=True):
@@ -242,7 +297,7 @@ def main_app():
         This app uses:
         - **OCR** (Tesseract) to extract text from images
         - **LLM** to structure contact information
-        - **Pandas** for data processing
+        - **Excel** for data export with formatting
         """)
     
     # Main content
@@ -278,13 +333,16 @@ def main_app():
                         st.subheader("📊 Extracted Contacts")
                         st.dataframe(df, use_container_width=True)
                         
+                        # Generate Excel file
+                        filename = f"contacts_{uploaded_file.name.split('.')[0]}.xlsx"
+                        excel_data = create_excel_file(df, filename)
+                        
                         # Download button
-                        csv = df.to_csv(index=False)
                         st.download_button(
-                            label="📥 Download CSV",
-                            data=csv,
-                            file_name=f"contacts_{uploaded_file.name.split('.')[0]}.csv",
-                            mime="text/csv"
+                            label="📥 Download Excel",
+                            data=excel_data,
+                            file_name=filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
                         
                         # Show extracted text in expander
@@ -327,13 +385,17 @@ def main_app():
                     st.subheader("📊 All Extracted Contacts")
                     st.dataframe(df, use_container_width=True)
                     
+                    # Generate Excel file with timestamp
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    filename = f"all_extracted_contacts_{timestamp}.xlsx"
+                    excel_data = create_excel_file(df, filename)
+                    
                     # Download button
-                    csv = df.to_csv(index=False)
                     st.download_button(
-                        label="📥 Download All Contacts CSV",
-                        data=csv,
-                        file_name="all_extracted_contacts.csv",
-                        mime="text/csv"
+                        label="📥 Download All Contacts Excel",
+                        data=excel_data,
+                        file_name=filename,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     )
                     
                     # Statistics

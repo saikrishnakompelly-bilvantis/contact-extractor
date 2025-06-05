@@ -1,6 +1,6 @@
 # Contact Information Extractor
 
-This tool extracts contact information (Name, Company, and Designation) from images and saves them to a CSV file. It now includes both a command-line interface and a user-friendly Streamlit web application.
+This tool extracts contact information (Name, Company, and Designation) from images and saves them to Excel files. It now includes both a command-line interface and a user-friendly Streamlit web application.
 
 ## Prerequisites
 
@@ -39,15 +39,16 @@ The easiest way to use this tool is through the web interface:
    - Preview uploaded images
    - Extract contacts with real-time progress
    - View extracted contacts in a table
-   - Download results as CSV files
+   - Download results as Excel files (.xlsx)
 
 #### Features:
 - **Single Image Mode**: Upload and process one image at a time
 - **Batch Processing**: Upload multiple images and process them together
 - **Real-time Progress**: See processing status and progress bars
 - **Interactive Results**: View extracted data in sortable tables
-- **Instant Download**: Get CSV files immediately after processing
+- **Excel Download**: Get formatted Excel files with professional styling
 - **Settings**: Adjust batch size for optimal performance
+- **Authentication**: Secure login system
 
 ### Option 2: Command Line Interface
 
@@ -66,12 +67,46 @@ For automated processing or integration into other workflows:
    - Extract contact information using OCR and LLM
    - Save the results to `extracted_contacts2.csv`
 
+## Docker Deployment
+
+For easy deployment on EC2 or other cloud platforms:
+
+1. Build and run with Docker:
+   ```bash
+   # Using Docker Compose (recommended)
+   docker-compose up -d
+   
+   # Or build manually
+   docker build -t contact-extraction .
+   docker run -p 8501:8501 contact-extraction
+   ```
+
+2. Use the deployment script for EC2:
+   ```bash
+   chmod +x deploy/deploy.sh
+   ./deploy/deploy.sh deploy
+   ```
+
 ## Output Format
 
-The generated CSV file will contain the following columns:
+The generated Excel file will contain:
+
+### Main Sheet - "Contacts":
 - **name**: The person's name
 - **designation**: Job title/role  
 - **company**: Company name
+
+### Metadata Sheet:
+- Generation timestamp
+- Total contacts count
+- Application information
+- File format details
+
+### Excel Features:
+- **Professional Formatting**: Headers with blue background and white text
+- **Auto-sized Columns**: Automatically adjusted column widths
+- **Multiple Sheets**: Main data + metadata information
+- **Timestamp**: Files include generation timestamp for tracking
 
 ## Configuration
 
@@ -81,6 +116,12 @@ The application uses LLM (Language Learning Model) for intelligent contact extra
 - **Model Settings**: Temperature, max tokens, and other parameters
 - **API Configuration**: Base URL and authentication
 
+## Authentication
+
+The web application includes a secure login system:
+- **Username**: `admin`
+- **Password**: `Admin@123`
+
 ## Notes
 
 - The tool works best with clear, high-resolution images
@@ -88,10 +129,12 @@ The application uses LLM (Language Learning Model) for intelligent contact extra
 - The extraction accuracy depends on the quality of the image and the clarity of the text
 - The LLM-powered extraction provides better accuracy than traditional regex-based methods
 - Batch processing in the web app optimizes LLM usage and reduces processing time
+- Excel files include professional formatting and metadata for better usability
 
 ## Troubleshooting
 
 - **Tesseract not found**: Make sure Tesseract OCR is installed and in your system PATH
 - **LLM API errors**: Check your API key and internet connection in `src/settings.py`
 - **Memory issues**: Reduce batch size in the web app settings
-- **Poor extraction quality**: Try uploading higher resolution images with clearer text 
+- **Poor extraction quality**: Try uploading higher resolution images with clearer text
+- **Excel download issues**: Ensure openpyxl is installed: `pip install openpyxl` 
